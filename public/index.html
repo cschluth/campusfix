@@ -1,0 +1,30 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>CampusFix</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<a class="skip" href="#main">Skip to content</a>
+<header>
+  <div>
+    <h1 id="appName">CampusFix</h1>
+    <div class="sub" id="campusName"></div>
+  </div>
+  <div class="right">
+    <button class="btn ghost sm" id="bell" aria-haspopup="dialog">Updates <span id="bellN"></span></button>
+    <button class="btn ghost sm" id="staffBtn">Staff sign-in</button>
+  </div>
+</header>
+<nav role="tablist" aria-label="Sections" id="tabs"></nav>
+<main id="main" tabindex="-1"></main>
+<footer>
+  <span id="footerNote"></span> <a href="qr.html">Print QR posters</a>
+</footer>
+<dialog id="dlg" aria-labelledby="dlgT"></dialog>
+<div id="toast" role="status" aria-live="polite"></div>
+<script src="app.js"></script>
+</body>
+</html>

@@ -1,0 +1,64 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>CampusFix QR posters</title>
+<link rel="stylesheet" href="style.css">
+<style>
+  .posters { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 14px; }
+  .poster { text-align: center; break-inside: avoid; }
+  .poster svg { width: 100%; max-width: 180px; height: auto; }
+  .poster h3 { margin: 8px 0 2px; }
+  @media print { header, nav, footer, .noprint { display: none !important; } body { background: #fff; } .card { border: 1px solid #999; } }
+</style>
+</head>
+<body>
+<header><div><h1>QR posters</h1><div class="sub">Print these and stick them up. Scanning one opens the report form with the location filled in.</div></div>
+  <div class="right"><a class="btn ghost sm" href="/">Back to the app</a></div></header>
+<main>
+  <section class="card noprint">
+    <label for="base" style="margin-top:0">Public address of the app</label>
+    <input type="text" id="base" autocomplete="off">
+    <p class="hint" id="warn"></p>
+    <label for="room">Optional room (adds the room to the poster's QR code)</label>
+    <input type="text" id="room" maxlength="60" placeholder="e.g. Room 214">
+    <p><button class="btn" id="print">Print posters</button></p>
+  </section>
+  <section class="card poster"><div id="main-qr"></div><h3>Report a campus problem</h3><p class="meta">Scan to open the app</p></section>
+  <h2>One poster per building</h2>
+  <div class="posters" id="posters"></div>
+</main>
+<script src="vendor/qrcode.js"></script>
+<script>
+"use strict";
+const $ = (s) => document.querySelector(s);
+const esc = (s) => String(s).replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+let buildings = [];
+function qrSvg(url) {
+  const qr = qrcode(0, "M");
+  qr.addData(url); qr.make();
+  return qr.createSvgTag({ cellSize: 4, margin: 2, scalable: true, alt: "QR code for " + url });
+}
+function draw() {
+  const base = $("#base").value.replace(/\/+$/, ""), room = $("#room").value.trim();
+  $("#warn").textContent = /localhost|127\.0\.0\.1/.test(base)
+    ? "This address only works on this computer. Replace it with your public link (or your Wi-Fi address) before printing."
+    : "";
+  $("#main-qr").innerHTML = qrSvg(base + "/");
+  $("#posters").innerHTML = buildings.map((b) => {
+    const url = base + "/?b=" + encodeURIComponent(b.name) + (room ? "&r=" + encodeURIComponent(room) : "");
+    return `<div class="card poster">${qrSvg(url)}<h3>${esc(b.name)}</h3><p class="meta">${room ? esc(room) + " · " : ""}Scan to report a problem here</p></div>`;
+  }).join("");
+}
+fetch("/api/config").then((r) => r.json()).then((c) => {
+  buildings = c.buildings;
+  $("#base").value = location.origin;
+  draw();
+});
+$("#base").addEventListener("input", draw);
+$("#room").addEventListener("input", draw);
+$("#print").onclick = () => window.print();
+</script>
+</body>
+</html>

@@ -1,0 +1,12 @@
+services:
+  - type: web
+    name: campusfix
+    runtime: node
+    plan: free
+    buildCommand: npm install
+    startCommand: npm start
+    envVars:
+      - key: STAFF_PIN
+        sync: false
+      - key: SAMPLE_DATA
+        value: "true" # change to "false" to start with no sample reports
