@@ -115,4 +115,26 @@ Before a real launch also change these in `config.js`: `campusName`, `safetyCont
 
 ## AI disclosure
 
-Built with help from Claude (Anthropic). Add your own notes for the project report on how you read, tested and understood the code (the automated tests in `test/test.js` and manual walkthroughs).
+Tool used: Claude, an AI assistant from Anthropic (Claude Sonnet 5.5), used through a chat conversation during the 24-hour build window (Wednesday, October 28, starting about 10:15 AM).
+
+How we used it:
+
+We gave Claude the official challenge brief and asked it to build the CampusFix prototype. Claude wrote the application code (server, browser interface, duplicate-matching logic, tests) and the README. We chose which features to include (photo-and-text duplicate detection, an “is it fixed?” confirmation step, a campus map, QR location posters, and a staff priority queue) and directed later changes, such as adding staff tools to clear and delete reports, fixing the photo upload box, and changing the list of campus buildings.
+
+What is not AI-generated or original:
+
+The QR code library (qrcode-generator, MIT licence, by Kazuhiko Arase) is a third-party open-source file included unchanged. Everything else was written with Claude’s help during the build window.
+
+How the output was checked:
+
+Claude ran six automated tests (npm test) covering the duplicate matching, the photo comparison, and the full report-to-resolved journey over the server. All pass.
+Claude also ran the app in a browser to test the journey with two separate visitors, including a phone-sized screen, the map, and the staff tools.
+We ran the app on our own computer and tested the journey ourselves.
+
+Limitations of AI-written code: 
+
+The code may contain mistakes that our tests did not catch. The photo matching and wording matching are simple methods and can miss or wrongly flag duplicates. The category suggestion and safety warning are keyword-based, not trained AI models, and people always make the final choice.
+
+Data and privacy:
+
+All reports are made-up sample data. The app collects no names, emails or ID numbers, and visitors are identified only by a random token in their browser.
