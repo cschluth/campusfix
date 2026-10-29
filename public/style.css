@@ -78,5 +78,7 @@ dialog::backdrop { background: rgba(0, 0, 0, .5); }
 .pin:focus-visible circle, .bld:focus-visible rect { stroke: var(--focus); stroke-width: 4; outline: none; }
 table { border-collapse: collapse; width: 100%; }
 th, td { text-align: left; padding: 6px 8px; border-bottom: 1px solid var(--line); }
+.sw { display: inline-flex; width: 22px; height: 22px; border-radius: 50%; border: 1.5px solid #14294f; align-items: center; justify-content: center; font: 700 11px system-ui, sans-serif; font-style: normal; color: #111; margin-right: 6px; vertical-align: middle; }
+.sw.R { background: #fb923c; } .sw.P { background: #60a5fa; } .sw.C { background: #4ade80; }
 .legend { display: flex; gap: 14px; flex-wrap: wrap; font-size: .88rem; margin: 6px 0; }
 @media (prefers-reduced-motion: no-preference) { #toast { transition: opacity .2s; } }

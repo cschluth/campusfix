@@ -74,6 +74,7 @@ test("full journey over HTTP", async () => {
   assert.strictEqual(check.similar[0].issue.id, created.id);
   const up = (await call(`/api/issues/${created.id}/upvote`, { method: "POST", headers: bob })).body;
   assert.strictEqual(up.votes, 2);
+  assert.ok(up.history[up.history.length - 1].note.includes("2 reports now"), "an additional report is recorded in the history");
   await call(`/api/issues/${created.id}/upvote`, { method: "POST", headers: bob });
   assert.strictEqual(store(server, created.id).voters.length, 2, "double upvote must not count");
 

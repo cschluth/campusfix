@@ -22,7 +22,7 @@ function toast(m) {
 const memoryId = "v" + Date.now().toString(36) + Math.random().toString(36).slice(2, 10);
 const visitor = store.get("campusfix.vid") || (() => { store.set("campusfix.vid", memoryId); return memoryId; })();
 
-const state = { cfg: null, issues: [], tab: "browse", filters: { q: "", cat: "", bld: "", st: "" }, draft: {}, showResolved: false, snapshot: "", staff: false, pin: "" };
+const state = { cfg: null, issues: [], tab: "browse", filters: { q: "", cat: "", bld: "", st: "" }, draft: {}, showResolved: true, snapshot: "", staff: false, pin: "" };
 try { state.pin = sessionStorage.getItem("campusfix.pin") || ""; } catch {}
 
 /* ================= 2. talking to the server ================= */
@@ -126,17 +126,19 @@ function renderBrowse() {
 
 // ---- Campus map: a simple drawing, not to scale. Every building and pin can also be reached with the keyboard.
 function renderMap() {
-  const shown = state.issues.filter((i) => state.showResolved || i.status !== "Resolved");
+  const isOpen = (i) => i.status !== "Resolved";
+  const shown = state.showResolved ? state.issues : state.issues.filter(isOpen);
   const letter = { Reported: "R", "In Progress": "P", Resolved: "✓" };
   let rects = "", pins = "";
   const rows = [];
   for (const b of state.cfg.buildings) {
-    const here = shown.filter((i) => i.building === b.name);
-    const heat = Math.min(3, here.length === 0 ? 0 : here.length <= 1 ? 1 : here.length <= 3 ? 2 : 3);
-    rows.push([b.name, here.length]);
-    rects += `<g class="bld" role="button" tabindex="0" data-bld="${esc(b.name)}" aria-label="${esc(b.name)}: ${here.length} issues. Show them in the list">
+    const here = shown.filter((i) => i.building === b.name).sort((x, y) => isOpen(y) - isOpen(x)); // open pins first, so resolved ones are dropped first when crowded
+    const nOpen = here.filter(isOpen).length, nRes = here.length - nOpen;
+    const heat = Math.min(3, nOpen === 0 ? 0 : nOpen <= 1 ? 1 : nOpen <= 3 ? 2 : 3); // shading follows open issues only
+    rows.push([b.name, nOpen, nRes]);
+    rects += `<g class="bld" role="button" tabindex="0" data-bld="${esc(b.name)}" aria-label="${esc(b.name)}: ${nOpen} open, ${nRes} resolved. Show them in the list">
       <rect class="h${heat}" x="${b.x}" y="${b.y}" width="${b.w}" height="${b.h}" rx="8"/>
-      <text x="${b.x + 10}" y="${b.y + 20}">${esc(b.name)}</text><text class="cnt" x="${b.x + 10}" y="${b.y + 36}">${here.length} ${state.showResolved ? "issues" : "open"}</text></g>`;
+      <text x="${b.x + 10}" y="${b.y + 20}">${esc(b.name)}</text><text class="cnt" x="${b.x + 10}" y="${b.y + 36}">${nOpen} open${nRes ? " \u00b7 " + nRes + " resolved" : ""}</text></g>`;
     const cols = Math.floor((b.w - 20) / 22), cap = cols * 2;
     const draw = here.length > cap ? here.slice(0, cap - 1) : here;
     draw.forEach((i, n) => {
@@ -147,12 +149,12 @@ function renderMap() {
     if (here.length > cap) pins += `<text x="${b.x + 18 + (cap - 1) % cols * 22 - 8}" y="${b.y + 76}" font-size="12" font-weight="700" fill="#14294f">+${here.length - cap + 1}</text>`;
   }
   $("#main").innerHTML = `<h2>Campus map</h2>
-  <p class="hint">A simple sketch, not to scale. Darker buildings have more open issues. Select a pin to see the report, or a building to list its issues.</p>
-  <div class="legend"><span><b>R</b> Reported</span><span><b>P</b> In progress</span><span><b>✓</b> Resolved</span>
+  <p class="hint">A simple sketch, not to scale. Darker buildings have more open issues. Each pin is one report: it changes from R to P to ✓ as it moves along. Select a pin to see the report, or a building to list its issues.</p>
+  <div class="legend"><span><i class="sw R">R</i>Reported</span><span><i class="sw P">P</i>In progress</span><span><i class="sw C">✓</i>Resolved</span>
     <label style="margin:0;font-weight:400"><input type="checkbox" id="showRes" ${state.showResolved ? "checked" : ""}> Show resolved</label></div>
   <svg class="map" viewBox="0 0 600 400" role="group" aria-label="Campus map with reported issues">${rects}${pins}</svg>
-  <div class="card"><h3>Issues by building</h3><table><thead><tr><th>Building</th><th>${state.showResolved ? "Issues" : "Open issues"}</th></tr></thead><tbody>
-  ${rows.sort((a, b) => b[1] - a[1]).map(([n, c]) => `<tr><td><button class="pill" data-bld="${esc(n)}">${esc(n)}</button></td><td>${c}</td></tr>`).join("")}</tbody></table></div>`;
+  <div class="card"><h3>Issues by building</h3><table><thead><tr><th>Building</th><th>Open</th><th>Resolved</th></tr></thead><tbody>
+  ${rows.sort((a, b) => b[1] - a[1] || b[2] - a[2]).map(([n, o, r]) => `<tr><td><button class="pill" data-bld="${esc(n)}">${esc(n)}</button></td><td>${o}</td><td>${r}</td></tr>`).join("")}</tbody></table></div>`;
   $("#showRes").onchange = (e) => { state.showResolved = e.target.checked; renderMap(); };
 }
 
@@ -231,7 +233,8 @@ function showDups(similar) {
     <div class="meta">${esc(m.issue.building)}${m.issue.room ? ", " + esc(m.issue.room) : ""} · ${m.issue.votes} ${m.issue.votes === 1 ? "report" : "reports"}</div>
     <p>${esc(m.issue.description)}</p>
     <div class="chips"><strong>${esc(m.strength)}</strong>${m.reasons.map((r) => `<span class="chip">${esc(r)}</span>`).join("")}</div>
-    <button class="btn sm" data-dupvote="${m.issue.id}">Yes, same problem: add my report</button></div></div></div>`).join("")}
+    ${byId(m.issue.id)?.mine ? '<p class="hint">You already reported or added to this one, so it already counts you.</p><button class="btn sm" data-dupvote="' + m.issue.id + '">OK, that is the one I reported</button>'
+      : `<button class="btn sm" data-dupvote="${m.issue.id}">Yes, same problem: add my report</button>`}</div></div></div>`).join("")}
   <button class="btn alt" id="newAnyway">No, mine is different: submit as new</button></div>`;
   $("#dups").scrollIntoView({ behavior: "smooth" });
   $("#newAnyway").onclick = () => submitNew().catch((e) => toast(e.message));
@@ -384,6 +387,12 @@ function staffDialog() {
 }
 
 /* ================= 5. events ================= */
+// Adds the visitor's report to an existing issue. Each browser counts once, so a repeat tap changes nothing and says so.
+async function addReport(id) {
+  const already = byId(id)?.mine;
+  const r = await api(`/api/issues/${id}/upvote`, "POST");
+  return already ? "You already reported this one, so it already counts you." : `Added. This issue now has ${r.votes} reports, and you'll get its updates.`;
+}
 async function act(fn) { try { await fn(); } catch (e) { toast(e.message); } }
 document.addEventListener("click", (e) => {
   const t = e.target.closest("[data-tab],[data-open],[data-vote],[data-dupvote],[data-bld],[data-quick],[data-confirm],[data-close],[data-tool],[data-delete],[data-doit]");
@@ -402,8 +411,8 @@ document.addEventListener("click", (e) => {
   });
   else if (d.open) { if ($("#dlg").open) $("#dlg").close(); openDetail(+d.open); }
   else if (d.bld) { state.filters = { q: "", cat: "", bld: d.bld, st: "" }; state.tab = "browse"; render(); $("#main").focus(); }
-  else if (d.vote) act(async () => { await api(`/api/issues/${d.vote}/upvote`, "POST"); if (d.closedlg) $("#dlg").close(); await refresh(true); toast("Added. You'll get updates on this issue."); });
-  else if (d.dupvote) act(async () => { await api(`/api/issues/${d.dupvote}/upvote`, "POST"); state.draft = {}; state.tab = "browse"; await refresh(true); toast("Added your report to the existing one instead of creating a duplicate."); });
+  else if (d.vote) act(async () => { const r = await addReport(+d.vote); if (d.closedlg) $("#dlg").close(); await refresh(true); toast(r); });
+  else if (d.dupvote) act(async () => { const r = await addReport(+d.dupvote); state.draft = {}; state.tab = "browse"; await refresh(true); toast(r); });
   else if (d.quick) act(async () => {
     const [id, what] = d.quick.split(":"), i = byId(+id);
     const body = what === "start" ? { status: "In Progress", assignee: state.cfg.crewByCategory[i.category] || state.cfg.defaultCrew } : { status: "Resolved" };

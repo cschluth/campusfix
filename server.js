@@ -134,7 +134,11 @@ function createServer(dataDir = process.env.DATA_DIR || path.join(__dirname, "da
       const i = store.find(+m.id);
       if (!i) throw fail(404, "Not found");
       if (i.status === "Resolved") throw fail(400, "This issue is already resolved");
-      if (!i.voters.includes(v)) { i.voters.push(v); store.save(); }
+      if (!i.voters.includes(v)) {
+        i.voters.push(v);
+        i.history.push({ ts: Date.now(), status: i.status, note: `Another person reported this (${i.voters.length} reports now)`, by: "Community" });
+        store.save();
+      }
       return publicIssue(i, v);
     },
 
